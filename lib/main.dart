@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'models/task.dart';
 
 void main() {
   runApp(const SnapTaskApp());
@@ -18,26 +19,94 @@ class SnapTaskApp extends StatelessWidget {
   }
 }
 
-class TaskListScreen extends StatelessWidget {
+class TaskListScreen extends StatefulWidget {
   const TaskListScreen({super.key});
+
+  @override
+  State<TaskListScreen> createState() => _TaskListScreenState();
+}
+
+class _TaskListScreenState extends State<TaskListScreen> {
+  final List<Task> _tasks = [];
+
+  void _addTask(Task task) {
+    setState(() {
+      _tasks.insert(0, task);
+    });
+  }
+
+  void _toggleDone(Task task) {
+    setState(() {
+      task.isDone = !task.isDone;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('SnapTask Reminder')),
-      body: const Center(
-        child: Text(
-          'No tasks yet.\nTap + to add one.',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 18),
-        ),
-      ),
+      body: _tasks.isEmpty
+          ? const Center(
+              child: Text(
+                'No tasks yet.\nTap + to add one.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 18),
+              ),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.all(12),
+              itemCount: _tasks.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final task = _tasks[index];
+
+                return ListTile(
+                  tileColor: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  leading: IconButton(
+                    icon: Icon(
+                      task.isDone
+                          ? Icons.check_circle
+                          : Icons.radio_button_unchecked,
+                    ),
+                    onPressed: () => _toggleDone(task),
+                  ),
+                  title: Text(
+                    task.title,
+                    style: TextStyle(
+                      decoration: task.isDone
+                          ? TextDecoration.lineThrough
+                          : null,
+                    ),
+                  ),
+                  subtitle: task.notes == null || task.notes!.trim().isEmpty
+                      ? null
+                      : Text(task.notes!),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => TaskDetailScreen(task: task),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
+        onPressed: () async {
+          final created = await Navigator.push<Task?>(
             context,
             MaterialPageRoute(builder: (_) => const AddTaskScreen()),
           );
+
+          if (created != null) {
+            _addTask(created);
+          }
         },
         child: const Icon(Icons.add),
       ),
@@ -45,8 +114,43 @@ class TaskListScreen extends StatelessWidget {
   }
 }
 
-class AddTaskScreen extends StatelessWidget {
+class AddTaskScreen extends StatefulWidget {
   const AddTaskScreen({super.key});
+
+  @override
+  State<AddTaskScreen> createState() => _AddTaskScreenState();
+}
+
+class _AddTaskScreenState extends State<AddTaskScreen> {
+  final _titleController = TextEditingController();
+  final _notesController = TextEditingController();
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final title = _titleController.text.trim();
+    final notes = _notesController.text.trim();
+
+    if (title.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a task title')),
+      );
+      return;
+    }
+
+    final task = Task(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: title,
+      notes: notes.isEmpty ? null : notes,
+    );
+
+    Navigator.pop(context, task);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,19 +161,73 @@ class AddTaskScreen extends StatelessWidget {
         child: Column(
           children: [
             TextField(
+              controller: _titleController,
               decoration: const InputDecoration(
                 labelText: 'Task title',
                 border: OutlineInputBorder(),
               ),
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _notesController,
+              decoration: const InputDecoration(
+                labelText: 'Notes (optional)',
+                border: OutlineInputBorder(),
+              ),
+              minLines: 2,
+              maxLines: 4,
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text('Save Task'),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _save,
+                icon: const Icon(Icons.save),
+                label: const Text('Save Task'),
+              ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class TaskDetailScreen extends StatelessWidget {
+  final Task task;
+
+  const TaskDetailScreen({super.key, required this.task});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Task Details')),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  task.title,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Created: ${task.createdAt}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  task.notes ?? 'No notes added.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
