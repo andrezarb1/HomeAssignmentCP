@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+
 import 'models/task.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Hive.initFlutter();
+  Hive.registerAdapter(TaskAdapter());
+  await Hive.openBox<Task>('tasks');
+
   runApp(const SnapTaskApp());
 }
 
@@ -27,25 +35,46 @@ class TaskListScreen extends StatefulWidget {
 }
 
 class _TaskListScreenState extends State<TaskListScreen> {
-  final List<Task> _tasks = [];
+  late final Box<Task> _taskBox;
+
+  @override
+  void initState() {
+    super.initState();
+    _taskBox = Hive.box<Task>('tasks');
+  }
 
   void _addTask(Task task) {
-    setState(() {
-      _tasks.insert(0, task);
-    });
+    _taskBox.put(task.id, task);
+    setState(() {});
   }
 
   void _toggleDone(Task task) {
-    setState(() {
-      task.isDone = !task.isDone;
-    });
+    task.isDone = !task.isDone;
+    task.save();
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
+    // newest first
+    final tasks = _taskBox.values.toList().reversed.toList();
+
     return Scaffold(
-      appBar: AppBar(title: const Text('SnapTask Reminder')),
-      body: _tasks.isEmpty
+      appBar: AppBar(
+        title: const Text('SnapTask Reminder'),
+        actions: [
+          if (tasks.isNotEmpty)
+            IconButton(
+              tooltip: 'Clear all tasks',
+              onPressed: () async {
+                await _taskBox.clear();
+                setState(() {});
+              },
+              icon: const Icon(Icons.delete_outline),
+            ),
+        ],
+      ),
+      body: tasks.isEmpty
           ? const Center(
               child: Text(
                 'No tasks yet.\nTap + to add one.',
@@ -55,10 +84,10 @@ class _TaskListScreenState extends State<TaskListScreen> {
             )
           : ListView.separated(
               padding: const EdgeInsets.all(12),
-              itemCount: _tasks.length,
+              itemCount: tasks.length,
               separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
-                final task = _tasks[index];
+                final task = tasks[index];
 
                 return ListTile(
                   tileColor: Theme.of(
@@ -83,7 +112,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                           : null,
                     ),
                   ),
-                  subtitle: task.notes == null || task.notes!.trim().isEmpty
+                  subtitle: (task.notes == null || task.notes!.trim().isEmpty)
                       ? null
                       : Text(task.notes!),
                   onTap: () {
