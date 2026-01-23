@@ -59,7 +59,6 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // newest first
     final tasks = _taskBox.values.toList().reversed.toList();
 
     return Scaffold(
@@ -71,6 +70,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
               tooltip: 'Clear all tasks',
               onPressed: () async {
                 await _taskBox.clear();
+                await NotificationService.cancelAll();
                 setState(() {});
               },
               icon: const Icon(Icons.delete_outline),
@@ -117,7 +117,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                   ),
                   subtitle: (task.notes == null || task.notes!.trim().isEmpty)
                       ? null
-                      : Text(task.notes!),
+                      : Text(task.notes!.trim()),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -181,11 +181,11 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       notes: notes.isEmpty ? null : notes,
     );
 
-    // Trigger a local notification on save
+    // Instant notification only (on save)
     await NotificationService.showNow(
       id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
       title: 'Task Saved',
-      body: 'Reminder created: $title',
+      body: 'Task created: $title',
     );
 
     Navigator.pop(context, task);

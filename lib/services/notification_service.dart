@@ -4,10 +4,40 @@ class NotificationService {
   static final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
 
+  static const String _channelId = 'snaptask_channel';
+
+  static const AndroidNotificationDetails _androidDetails =
+      AndroidNotificationDetails(
+        _channelId,
+        'SnapTask Reminders',
+        channelDescription: 'Notifications for SnapTask Reminder',
+        importance: Importance.max,
+        priority: Priority.high,
+      );
+
+  static const NotificationDetails _details = NotificationDetails(
+    android: _androidDetails,
+  );
+
+  static bool _initialized = false;
+
   static Future<void> init() async {
+    if (_initialized) return;
+
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const settings = InitializationSettings(android: android);
+
     await _plugin.initialize(settings);
+
+    // Request permission (Android 13+)
+    final androidPlugin = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+
+    await androidPlugin?.requestNotificationsPermission();
+
+    _initialized = true;
   }
 
   static Future<void> showNow({
@@ -15,16 +45,8 @@ class NotificationService {
     required String title,
     required String body,
   }) async {
-    const androidDetails = AndroidNotificationDetails(
-      'snaptask_channel',
-      'SnapTask Reminders',
-      channelDescription: 'Notifications for SnapTask Reminder',
-      importance: Importance.max,
-      priority: Priority.high,
-    );
-
-    const details = NotificationDetails(android: androidDetails);
-
-    await _plugin.show(id, title, body, details);
+    await _plugin.show(id, title, body, _details);
   }
+
+  static Future<void> cancelAll() async => _plugin.cancelAll();
 }
