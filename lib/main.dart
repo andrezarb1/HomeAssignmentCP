@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'models/task.dart';
+import 'services/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -9,6 +10,8 @@ Future<void> main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(TaskAdapter());
   await Hive.openBox<Task>('tasks');
+
+  await NotificationService.init();
 
   runApp(const SnapTaskApp());
 }
@@ -161,7 +164,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     super.dispose();
   }
 
-  void _save() {
+  Future<void> _save() async {
     final title = _titleController.text.trim();
     final notes = _notesController.text.trim();
 
@@ -176,6 +179,13 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       title: title,
       notes: notes.isEmpty ? null : notes,
+    );
+
+    // Trigger a local notification on save
+    await NotificationService.showNow(
+      id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title: 'Task Saved',
+      body: 'Reminder created: $title',
     );
 
     Navigator.pop(context, task);

@@ -11,6 +11,9 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Local notifications
+  flutter_local_notifications: ^17.2.2
+
   # Local persistent storage
   hive: ^2.2.3
   hive_flutter: ^1.1.0
