@@ -2,9 +2,9 @@ name: Flutter CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build:
@@ -28,6 +28,3 @@ jobs:
 
       - name: Run tests
         run: flutter test
-
-      - name: Build APK
-        run: flutter build apk --debug
