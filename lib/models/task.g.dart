@@ -22,13 +22,16 @@ class TaskAdapter extends TypeAdapter<Task> {
       notes: fields[2] as String?,
       createdAt: fields[3] as DateTime?,
       isDone: fields[4] as bool,
+      latitude: fields[5] as double?,
+      longitude: fields[6] as double?,
+      locationLabel: fields[7] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Task obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -38,7 +41,13 @@ class TaskAdapter extends TypeAdapter<Task> {
       ..writeByte(3)
       ..write(obj.createdAt)
       ..writeByte(4)
-      ..write(obj.isDone);
+      ..write(obj.isDone)
+      ..writeByte(5)
+      ..write(obj.latitude)
+      ..writeByte(6)
+      ..write(obj.longitude)
+      ..writeByte(7)
+      ..write(obj.locationLabel);
   }
 
   @override

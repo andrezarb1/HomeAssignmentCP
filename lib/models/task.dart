@@ -19,11 +19,24 @@ class Task extends HiveObject {
   @HiveField(4)
   bool isDone;
 
+  // GPS (optional)
+  @HiveField(5)
+  final double? latitude;
+
+  @HiveField(6)
+  final double? longitude;
+
+  @HiveField(7)
+  final String? locationLabel; // e.g. "Leeds, UK"
+
   Task({
     required this.id,
     required this.title,
     this.notes,
     DateTime? createdAt,
     this.isDone = false,
+    this.latitude,
+    this.longitude,
+    this.locationLabel,
   }) : createdAt = createdAt ?? DateTime.now();
 }

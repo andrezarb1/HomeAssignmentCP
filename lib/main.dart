@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import 'models/task.dart';
 import 'services/notification_service.dart';
+import 'services/location_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -92,6 +93,15 @@ class _TaskListScreenState extends State<TaskListScreen> {
               itemBuilder: (context, index) {
                 final task = tasks[index];
 
+                final subtitleLines = <String>[];
+                if (task.notes != null && task.notes!.trim().isNotEmpty) {
+                  subtitleLines.add(task.notes!.trim());
+                }
+                if (task.locationLabel != null &&
+                    task.locationLabel!.trim().isNotEmpty) {
+                  subtitleLines.add('Location: ${task.locationLabel}');
+                }
+
                 return ListTile(
                   tileColor: Theme.of(
                     context,
@@ -115,9 +125,9 @@ class _TaskListScreenState extends State<TaskListScreen> {
                           : null,
                     ),
                   ),
-                  subtitle: (task.notes == null || task.notes!.trim().isEmpty)
+                  subtitle: subtitleLines.isEmpty
                       ? null
-                      : Text(task.notes!.trim()),
+                      : Text(subtitleLines.join('\n')),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -157,11 +167,46 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   final _titleController = TextEditingController();
   final _notesController = TextEditingController();
 
+  double? _lat;
+  double? _lng;
+  String? _locationLabel;
+  bool _gettingLocation = false;
+
   @override
   void dispose() {
     _titleController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+  Future<void> _addLocation() async {
+    setState(() => _gettingLocation = true);
+
+    try {
+      final pos = await LocationService.getCurrentPosition();
+      final label = await LocationService.reverseGeocode(
+        pos.latitude,
+        pos.longitude,
+      );
+
+      setState(() {
+        _lat = pos.latitude;
+        _lng = pos.longitude;
+        _locationLabel = label ?? 'Location saved';
+      });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_locationLabel!)));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not get location: $e')));
+    } finally {
+      if (mounted) setState(() => _gettingLocation = false);
+    }
   }
 
   Future<void> _save() async {
@@ -179,9 +224,14 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       title: title,
       notes: notes.isEmpty ? null : notes,
+
+      // Save GPS fields into the Task
+      latitude: _lat,
+      longitude: _lng,
+      locationLabel: _locationLabel,
     );
 
-    // Instant notification only (on save)
+    // Instant notification (on save)
     await NotificationService.showNow(
       id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
       title: 'Task Saved',
@@ -217,6 +267,35 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
               minLines: 2,
               maxLines: 4,
             ),
+
+            const SizedBox(height: 12),
+
+            // GPS row
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _locationLabel == null
+                        ? 'No location saved'
+                        : 'Location: $_locationLabel',
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: _gettingLocation ? null : _addLocation,
+                  icon: _gettingLocation
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.my_location),
+                  label: Text(
+                    _gettingLocation ? 'Getting...' : 'Add Location (GPS)',
+                  ),
+                ),
+              ],
+            ),
+
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
@@ -240,6 +319,11 @@ class TaskDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locationText =
+        (task.locationLabel == null || task.locationLabel!.trim().isEmpty)
+        ? 'Not saved'
+        : task.locationLabel!.trim();
+
     return Scaffold(
       appBar: AppBar(title: const Text('Task Details')),
       body: Padding(
@@ -257,6 +341,11 @@ class TaskDetailScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 Text(
                   'Created: ${task.createdAt}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Location: $locationText',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 12),
