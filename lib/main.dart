@@ -72,6 +72,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
               onPressed: () async {
                 await _taskBox.clear();
                 await NotificationService.cancelAll();
+                if (!mounted) return;
                 setState(() {});
               },
               icon: const Icon(Icons.delete_outline),
@@ -146,6 +147,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
             MaterialPageRoute(builder: (_) => const AddTaskScreen()),
           );
 
+          if (!mounted) return;
           if (created != null) {
             _addTask(created);
           }
@@ -184,18 +186,22 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
 
     try {
       final pos = await LocationService.getCurrentPosition();
+      if (!mounted) return;
+
       final label = await LocationService.reverseGeocode(
         pos.latitude,
         pos.longitude,
       );
+      if (!mounted) return;
 
       setState(() {
         _lat = pos.latitude;
         _lng = pos.longitude;
-        _locationLabel = label ?? 'Location saved';
+        _locationLabel = (label == null || label.trim().isEmpty)
+            ? 'Location saved'
+            : label;
       });
 
-      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(_locationLabel!)));
@@ -238,6 +244,8 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       body: 'Task created: $title',
     );
 
+    // ✅ IMPORTANT: do not use context after await unless mounted
+    if (!mounted) return;
     Navigator.pop(context, task);
   }
 
@@ -267,7 +275,6 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
               minLines: 2,
               maxLines: 4,
             ),
-
             const SizedBox(height: 12),
 
             // GPS row
