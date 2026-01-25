@@ -2,29 +2,25 @@ name: Flutter CI
 
 on:
   push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
+    branches: [ "main" ] # Triggers when you push to main
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # The virtual environment for the build
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4 # Downloads your code
+      
       - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@v2 # Installs Flutter SDK
         with:
-          channel: "stable"
-          cache: true
+          channel: 'stable'
 
       - name: Install dependencies
-        run: flutter pub get
+        run: flutter pub get # Downloads your app's packages
 
       - name: Analyze code
-        run: flutter analyze
+        run: flutter analyze # Checks for code quality/errors
 
       - name: Run tests
-        run: flutter test
+        run: flutter test # Executes your unit tests
