@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "428483079028",
+    "project_id": "snaptaskreminder",
+    "storage_bucket": "snaptaskreminder.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:428483079028:android:391bd90286afbedb20da21",
+        "android_client_info": {
+          "package_name": "com.example.snaptask_reminder"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBeJBQDmuyKYBWFgmQ5EOJVvQusGRPP0XM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
